@@ -10,7 +10,7 @@ import json
 import random
 import math
 from pathlib import Path
-
+import pandas as pd
 import numpy as np
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data" / "synthetic"
@@ -143,7 +143,9 @@ def generate_phacked_strategy(idx: int) -> dict:
             best_sharpe = s
             best_returns = trial
 
+    assert best_returns is not None, "No trials were run"
     returns = best_returns
+
     num_params = random.randint(5, 15)
     split_ratio = random.uniform(0.65, 0.90)
 
