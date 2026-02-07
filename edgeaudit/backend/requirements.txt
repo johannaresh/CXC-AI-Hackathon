@@ -10,4 +10,6 @@ xgboost
 scipy
 snowflake-connector-python
 google-generativeai
+httpx
+yfinance
 pytest

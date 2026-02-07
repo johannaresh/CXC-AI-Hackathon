@@ -1,0 +1,19 @@
+{
+    "include": [
+        "edgeaudit/backend"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/node_modules",
+        ".git"
+    ],
+    "venvPath": "edgeaudit",
+    "venv": ".venv",
+    "pythonVersion": "3.11",
+    "typeCheckingMode": "basic",
+    "reportMissingImports": "warning",
+    "reportMissingTypeStubs": "none",
+    "extraPaths": [
+        "edgeaudit/backend"
+    ]
+}

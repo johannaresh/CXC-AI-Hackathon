@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(dir /s /b \"c:\\\\Users\\\\narri\\\\Downloads\\\\CXC Hackathon\\\\edgeaudit\")",
+      "Bash(dir:*)",
+      "Bash(python -m scripts.generate_training_data:*)",
+      "Bash(python -m scripts.train_overfit_classifier:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill //f //pid 33988)"
+    ]
+  }
+}

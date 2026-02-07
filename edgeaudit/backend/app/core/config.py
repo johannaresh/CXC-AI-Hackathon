@@ -20,6 +20,12 @@ class Settings:
     # Gemini
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # Backboard
+    BACKBOARD_API_KEY: str = os.getenv("BACKB_API", "")
+    BACKBOARD_BASE_URL: str = os.getenv(
+        "BACKBOARD_BASE_URL", "https://api.backboard.io/v1"
+    )
+
     # App
     ENV: str = os.getenv("ENV", "development")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "info")
