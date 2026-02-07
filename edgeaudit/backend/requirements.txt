@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+numpy
+pandas
+scikit-learn
+torch
+xgboost
+scipy
+snowflake-connector-python
+google-generativeai
+pytest
