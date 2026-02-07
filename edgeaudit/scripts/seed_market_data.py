@@ -56,7 +56,7 @@ TICKERS = [
 
 # Date range: last 5 years
 END_DATE = datetime.now()
-START_DATE = END_DATE - timedelta(days=5 * 365)
+START_DATE = END_DATE - timedelta(days=7 * 365)
 
 
 def get_snowflake_connection():
@@ -83,34 +83,65 @@ def fetch_ticker_data(ticker: str) -> list[dict]:
             start=START_DATE.strftime("%Y-%m-%d"),
             end=END_DATE.strftime("%Y-%m-%d"),
             progress=False,
+            auto_adjust=False,
         )
-        if data.empty:
+
+        # yf.download can return None in edge cases
+        if data is None:
             print(f"    No data for {ticker}")
             return []
 
-        # yfinance may return MultiIndex columns - flatten if needed
-        if isinstance(data.columns, tuple) or (hasattr(data.columns, 'nlevels') and data.columns.nlevels > 1):
-            data = data.droplevel(1, axis=1)
+        import pandas as pd
 
-        records = []
-        for date, row in data.iterrows():
+        if not isinstance(data, pd.DataFrame):
+            print(f"    Unexpected return type for {ticker}: {type(data)}")
+            return []
+
+        # yfinance >= 0.2.31 returns MultiIndex columns like (Price, Ticker).
+        # Flatten them so we get simple column names: Open, High, Low, etc.
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.droplevel("Ticker")
+
+        if data.shape[0] == 0:
+            print(f"    No data for {ticker}")
+            return []
+
+        # Normalize column names for consistent access
+        data.columns = pd.Index([str(c).strip() for c in data.columns])
+
+        # Strip timezone from DatetimeIndex so .strftime works reliably
+        if isinstance(data.index, pd.DatetimeIndex) and data.index.tz is not None:
+            data.index = data.index.tz_localize(None)
+
+        records: list[dict] = []
+        for date_idx, row in data.iterrows():
             try:
-                open_price = float(row["Open"]) if "Open" in row and row["Open"] == row["Open"] else 0.0
-                high_price = float(row["High"]) if "High" in row and row["High"] == row["High"] else 0.0
-                low_price = float(row["Low"]) if "Low" in row and row["Low"] == row["Low"] else 0.0
-                close_price = float(row["Close"]) if "Close" in row and row["Close"] == row["Close"] else 0.0
-                adj_close = float(row["Adj Close"]) if "Adj Close" in row and row["Adj Close"] == row["Adj Close"] else close_price
-                volume = int(row["Volume"]) if "Volume" in row and row["Volume"] == row["Volume"] else 0
-                
+                # Convert the index timestamp to a plain date string
+                if isinstance(date_idx, pd.Timestamp):
+                    trade_date = date_idx.strftime("%Y-%m-%d")
+                else:
+                    trade_date = str(date_idx)
+
+                open_price = float(row.get("Open", 0.0))
+                high_price = float(row.get("High", 0.0))
+                low_price = float(row.get("Low", 0.0))
+                close_price = float(row.get("Close", 0.0))
+                adj_close = float(row.get("Adj Close", close_price))
+                volume = int(row.get("Volume", 0))
+
+                # Skip rows where close is NaN (e.g. holidays)
+                if close_price != close_price:  # NaN check
+                    continue
+
                 records.append({
                     "ticker": ticker,
-                    "date": date.strftime("%Y-%m-%d"),
-                    "open": open_price,
-                    "high": high_price,
-                    "low": low_price,
+                    "date": trade_date,
+                    "open": open_price if open_price == open_price else 0.0,
+                    "high": high_price if high_price == high_price else 0.0,
+                    "low": low_price if low_price == low_price else 0.0,
                     "close": close_price,
-                    "adj_close": adj_close,
-                    "volume": volume,
+                    "adj_close": adj_close if adj_close == adj_close else close_price,
+                    "volume": volume if volume == volume else 0,
                 })
             except Exception as row_err:
                 print(f"    Skipping row due to error: {row_err}")
@@ -185,6 +216,7 @@ def main():
     print("Connecting to Snowflake...")
     try:
         conn = get_snowflake_connection()
+        clear_existing_data(conn)
         print("Connected successfully!")
     except Exception as e:
         print(f"Failed to connect to Snowflake: {e}")
