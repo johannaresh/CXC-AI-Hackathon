@@ -114,6 +114,11 @@ def _flatten_audit_data(audit_data: dict) -> dict:
     }
 
 
+def is_configured() -> bool:
+    """Check if Gemini API key is configured."""
+    return bool(settings.GEMINI_API_KEY)
+
+
 def _get_model():
     """Initialize Gemini model."""
     import google.generativeai as genai

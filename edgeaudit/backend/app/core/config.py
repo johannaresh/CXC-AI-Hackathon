@@ -3,8 +3,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env from project root (two levels up from this file)
-_env_path = Path(__file__).resolve().parents[3] / ".env"
+# Load .env from project root (CXC-AI-Hackathon/)
+# Path: edgeaudit/backend/app/core/config.py -> parents[4] -> CXC-AI-Hackathon/
+_env_path = Path(__file__).resolve().parents[4] / ".env"
 load_dotenv(_env_path)
 
 
