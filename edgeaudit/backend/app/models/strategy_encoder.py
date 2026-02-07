@@ -94,11 +94,11 @@ def encode_strategy(features: list[float]) -> list[float]:
         16-dimensional latent vector.
     """
     global _encoder_model, _feature_scaler
-    if _encoder_model is None:
+    if _encoder_model is None or _feature_scaler is None:
         _load_model()
 
-    if _encoder_model is None:
-        # No trained model available — return zeros
+    if _encoder_model is None or _feature_scaler is None:
+        # No trained model or scaler available — return zeros
         return [0.0] * 16
 
     arr = np.array(features, dtype=np.float64).reshape(1, -1)
@@ -122,10 +122,10 @@ def get_reconstruction_error(features: list[float]) -> float:
         Reconstruction MSE (float). Returns 0.0 if no model is loaded.
     """
     global _encoder_model, _feature_scaler
-    if _encoder_model is None:
+    if _encoder_model is None or _feature_scaler is None:
         _load_model()
 
-    if _encoder_model is None:
+    if _encoder_model is None or _feature_scaler is None:
         return 0.0
 
     arr = np.array(features, dtype=np.float64).reshape(1, -1)
