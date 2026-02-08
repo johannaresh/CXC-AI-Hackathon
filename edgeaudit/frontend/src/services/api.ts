@@ -43,6 +43,14 @@ class ApiService {
       body: JSON.stringify(payload),
     });
   }
+
+  async getStrategies(): Promise<{ strategies: any[] }> {
+    return this.fetch<{ strategies: any[] }>('/strategies/available');
+  }
+
+  async getStrategyByName(name: string): Promise<any> {
+    return this.fetch<any>(`/strategies/${encodeURIComponent(name)}`);
+  }
 }
 
 export const apiService = new ApiService();
