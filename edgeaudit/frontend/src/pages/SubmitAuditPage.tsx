@@ -44,10 +44,8 @@ export function SubmitAuditPage() {
     setLoadingStrategies(true);
     setError(null);
     try {
-      const response = await fetch('/strategies/available');
-      if (!response.ok) throw new Error('Failed to load strategies');
-      const data = await response.json();
-      setStrategies(data.strategies || []);
+      const response = await apiService.getStrategies();
+      setStrategies(response.strategies || []);
       setStep('strategy');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load strategies');
@@ -63,7 +61,9 @@ export function SubmitAuditPage() {
     if (selectedMode === 'quick-select') {
       // Will trigger useEffect to load strategies
     } else {
-      navigate('/submit/manual'); // Could create separate manual entry page or inline form
+      // Manual mode not yet implemented - show error message
+      setError('Manual entry mode is not yet implemented. Please use Quick Select.');
+      setMode(null);
     }
   };
 
@@ -86,9 +86,7 @@ export function SubmitAuditPage() {
 
     try {
       // Fetch full strategy data
-      const response = await fetch(`/strategies/${encodeURIComponent(selectedStrategy.name)}`);
-      if (!response.ok) throw new Error('Failed to load strategy details');
-      const strategyData = await response.json();
+      const strategyData = await apiService.getStrategyByName(selectedStrategy.name);
 
       // Add selected_asset to payload
       const payload = {
