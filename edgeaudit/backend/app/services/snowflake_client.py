@@ -76,6 +76,12 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
 
     try:
         cursor = conn.cursor()
+        
+        # Convert Python objects to JSON strings for VARIANT columns
+        payload_json = json.dumps(payload)
+        recommendations_json = json.dumps(audit_result.get("recommendations", []))
+        features_json = json.dumps(audit_result.get("features", {}))
+        
         cursor.execute(
             """
             INSERT INTO AUDIT_RESULTS (
@@ -86,7 +92,8 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
                 EDGE_SCORE, OVERFIT_SUB_SCORE, REGIME_SUB_SCORE,
                 STAT_SIG_SUB_SCORE, DATA_LEAKAGE_SUB_SCORE, EXPLAIN_SUB_SCORE,
                 NARRATIVE, RECOMMENDATIONS, FEATURE_VECTOR
-            ) VALUES (
+            )
+            SELECT 
                 %s, %s, PARSE_JSON(%s),
                 %s, %s, %s,
                 %s, %s,
@@ -94,12 +101,11 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
                 %s, %s, %s,
                 %s, %s, %s,
                 %s, PARSE_JSON(%s), PARSE_JSON(%s)
-            )
             """,
             (
                 audit_id,
                 audit_result.get("strategy_name", ""),
-                json.dumps(payload),
+                payload_json,
                 overfit.get("probability", 0),
                 overfit.get("confidence", 0),
                 overfit.get("label", "medium"),
@@ -116,8 +122,8 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
                 edge.get("data_leakage_sub_score", 0),
                 edge.get("explainability_sub_score", 0),
                 audit_result.get("narrative", ""),
-                json.dumps(audit_result.get("recommendations", [])),
-                json.dumps(audit_result.get("features", {})),
+                recommendations_json,
+                features_json,
             ),
         )
         logger.info("Stored audit result %s to Snowflake", audit_id)
