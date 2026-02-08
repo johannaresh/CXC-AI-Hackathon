@@ -63,7 +63,7 @@ def generate_clean_strategy(idx: int) -> dict:
         "num_parameters": num_params,
         "train_test_split_ratio": round(split_ratio, 2),
         "rebalance_frequency": random.choice(["daily", "weekly", "monthly"]),
-        "raw_returns": [round(r, 6) for r in raw],
+        "raw_returns": [round(r, 6) for r in raw], # type: ignore
         # Labels
         "is_overfit": False,
         "overfit_severity": round(random.uniform(0.0, 0.15), 3),
@@ -116,7 +116,7 @@ def generate_overfit_strategy(idx: int) -> dict:
         "num_parameters": num_params,
         "train_test_split_ratio": round(split_ratio, 2),
         "rebalance_frequency": random.choice(["daily", "weekly", "monthly"]),
-        "raw_returns": [round(r, 6) for r in raw],
+        "raw_returns": [round(r, 6) for r in raw], # type: ignore
         # Labels
         "is_overfit": True,
         "overfit_severity": round(min(severity, 1.0), 3),
@@ -169,7 +169,7 @@ def generate_phacked_strategy(idx: int) -> dict:
         "num_parameters": num_params,
         "train_test_split_ratio": round(split_ratio, 2),
         "rebalance_frequency": random.choice(["daily", "weekly", "monthly"]),
-        "raw_returns": [round(r, 6) for r in raw],
+        "raw_returns": [round(r, 6) for r in raw], # type: ignore
         # Labels
         "is_overfit": True,
         "overfit_severity": round(min(severity, 1.0), 3),

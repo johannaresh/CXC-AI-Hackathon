@@ -14,7 +14,10 @@ _connection = None
 
 def _is_configured() -> bool:
     """Check if Snowflake credentials are configured."""
-    return bool(settings.SNOWFLAKE_ACCOUNT and settings.SNOWFLAKE_USER)
+    configured = bool(settings.SNOWFLAKE_ACCOUNT and settings.SNOWFLAKE_USER)
+    if not configured:
+        logger.warning("Snowflake not configured: ACCOUNT=%r, USER=%r", settings.SNOWFLAKE_ACCOUNT, settings.SNOWFLAKE_USER)
+    return configured
 
 
 def get_connection():
@@ -256,3 +259,131 @@ def get_all_strategies() -> list[dict]:
     except Exception as e:
         logger.error("Failed to fetch strategies: %s", e)
         return []
+
+
+def list_all_audits(
+    page: int = 1,
+    page_size: int = 50,
+    strategy_name: str | None = None,
+    sort_by: str = "submitted_at",
+    sort_order: str = "desc",
+) -> dict:
+    """List all audits with pagination and filtering.
+
+    Returns dict with keys: audits (list), total (int), page (int), page_size (int).
+    Returns empty list if Snowflake unavailable.
+    """
+    conn = get_connection()
+    if conn is None:
+        return {"audits": [], "total": 0, "page": page, "page_size": page_size}
+
+    try:
+        import snowflake.connector
+        cursor = conn.cursor(snowflake.connector.DictCursor)
+
+        # Build WHERE clause
+        where_clause = ""
+        params = []
+        if strategy_name:
+            where_clause = "WHERE STRATEGY_NAME = %s"
+            params.append(strategy_name)
+
+        # Get total count
+        count_query = f"SELECT COUNT(*) as total FROM AUDIT_RESULTS {where_clause}"
+        cursor.execute(count_query, params)
+        total = cursor.fetchone()["TOTAL"]
+
+        # Map sort columns
+        sort_column_map = {
+            "submitted_at": "SUBMITTED_AT",
+            "edge_score": "EDGE_SCORE",
+            "overfit_probability": "OVERFIT_PROBABILITY",
+        }
+        db_sort_column = sort_column_map.get(sort_by, "SUBMITTED_AT")
+        order = "ASC" if sort_order == "asc" else "DESC"
+
+        # Calculate offset
+        offset = (page - 1) * page_size
+
+        # Fetch paginated results
+        query = f"""
+            SELECT
+                AUDIT_ID,
+                STRATEGY_NAME,
+                EDGE_SCORE,
+                OVERFIT_PROBABILITY,
+                OVERFIT_LABEL,
+                SUBMITTED_AT
+            FROM AUDIT_RESULTS
+            {where_clause}
+            ORDER BY {db_sort_column} {order}
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(query, [*params, page_size, offset])
+        rows = cursor.fetchall()
+
+        # Transform to AuditSummary format
+        audits = [
+            {
+                "audit_id": row["AUDIT_ID"],
+                "strategy_name": row["STRATEGY_NAME"],
+                "edge_score": float(row["EDGE_SCORE"]) if row["EDGE_SCORE"] else 0.0,
+                "overfit_probability": float(row["OVERFIT_PROBABILITY"]) if row["OVERFIT_PROBABILITY"] else 0.0,
+                "overfit_label": row["OVERFIT_LABEL"] or "medium",
+                "submitted_at": row["SUBMITTED_AT"].isoformat() if row["SUBMITTED_AT"] else "",
+            }
+            for row in rows
+        ]
+
+        return {
+            "audits": audits,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+    except Exception as e:
+        logger.error("Failed to list audits: %s", e)
+        return {"audits": [], "total": 0, "page": page, "page_size": page_size}
+
+
+def get_audit_summary() -> dict | None:
+    """Get aggregate KPIs for dashboard.
+
+    Returns None if Snowflake unavailable.
+    """
+    conn = get_connection()
+    if conn is None:
+        return None
+
+    try:
+        import snowflake.connector
+        cursor = conn.cursor(snowflake.connector.DictCursor)
+
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_audits,
+                COUNT(DISTINCT STRATEGY_NAME) as unique_strategies,
+                AVG(EDGE_SCORE) as average_edge_score,
+                AVG(OVERFIT_PROBABILITY) as average_overfit_probability,
+                SUM(CASE WHEN OVERFIT_LABEL = 'high' THEN 1 ELSE 0 END) as high_risk_count,
+                SUM(CASE WHEN OVERFIT_LABEL = 'medium' THEN 1 ELSE 0 END) as medium_risk_count,
+                SUM(CASE WHEN OVERFIT_LABEL = 'low' THEN 1 ELSE 0 END) as low_risk_count,
+                MAX(SUBMITTED_AT) as recent_audit_date
+            FROM AUDIT_RESULTS
+        """)
+
+        result = cursor.fetchone()
+
+        return {
+            "total_audits": result["TOTAL_AUDITS"] or 0,
+            "unique_strategies": result["UNIQUE_STRATEGIES"] or 0,
+            "average_edge_score": float(result["AVERAGE_EDGE_SCORE"]) if result["AVERAGE_EDGE_SCORE"] else 0.0,
+            "average_overfit_probability": float(result["AVERAGE_OVERFIT_PROBABILITY"]) if result["AVERAGE_OVERFIT_PROBABILITY"] else 0.0,
+            "high_risk_count": result["HIGH_RISK_COUNT"] or 0,
+            "medium_risk_count": result["MEDIUM_RISK_COUNT"] or 0,
+            "low_risk_count": result["LOW_RISK_COUNT"] or 0,
+            "recent_audit_date": result["RECENT_AUDIT_DATE"].isoformat() if result["RECENT_AUDIT_DATE"] else None,
+        }
+    except Exception as e:
+        logger.error("Failed to get audit summary: %s", e)
+        return None

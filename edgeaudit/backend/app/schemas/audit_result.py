@@ -43,3 +43,31 @@ class AuditResult(BaseModel):
     monte_carlo: MonteCarloResult
     narrative: str
     recommendations: list[str]
+
+
+class AuditSummary(BaseModel):
+    """Lightweight audit summary for list view."""
+    audit_id: str
+    strategy_name: str
+    edge_score: float
+    overfit_probability: float
+    overfit_label: str
+    submitted_at: str
+
+
+class AuditsListResponse(BaseModel):
+    audits: list[AuditSummary]
+    total: int
+    page: int
+    page_size: int
+
+
+class AuditsSummaryResponse(BaseModel):
+    total_audits: int
+    unique_strategies: int
+    average_edge_score: float
+    average_overfit_probability: float
+    high_risk_count: int
+    medium_risk_count: int
+    low_risk_count: int
+    recent_audit_date: str | None = None

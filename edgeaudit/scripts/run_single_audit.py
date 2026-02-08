@@ -24,8 +24,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuration
-BACKEND_URL = "http://localhost:8000"
+# Configuration 
+BACKEND_URL = "http://localhost:8001"
 AUDIT_ENDPOINT = f"{BACKEND_URL}/audit"
 STRATEGIES_ENDPOINT = f"{BACKEND_URL}/strategies/available"
 STRATEGIES_FILE = Path(__file__).resolve().parents[1] / "data" / "synthetic" / "synthetic_strategies.json"

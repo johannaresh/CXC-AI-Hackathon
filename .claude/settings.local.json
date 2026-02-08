@@ -12,7 +12,19 @@
       "Bash(python -m scripts.generate_training_data:*)",
       "Bash(python -m scripts.train_overfit_classifier:*)",
       "Bash(netstat:*)",
-      "Bash(taskkill //f //pid 33988)"
+      "Bash(taskkill //f //pid 33988)",
+      "Bash(git pull:*)",
+      "Bash(git restore:*)",
+      "Bash(ping:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss init -p)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite build)",
+      "Bash(npx kill-port:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
