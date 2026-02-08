@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from ..schemas.strategy import StrategyPayload
 from ..schemas.audit_result import (
@@ -36,6 +36,14 @@ def run_audit(payload: StrategyPayload):
     Snowflake persistence -> Backboard push.
     """
     payload_dict = payload.model_dump()
+
+    # Validate selected_asset if provided
+    if payload.selected_asset:
+        if payload.selected_asset not in payload.ticker_universe:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Selected asset '{payload.selected_asset}' is not in the strategy's ticker universe: {payload.ticker_universe}"
+            )
 
     # 1. Feature engineering (20 features)
     features = build_feature_vector(payload_dict)
@@ -75,6 +83,7 @@ def run_audit(payload: StrategyPayload):
         "monte_carlo": mc,
         "edge_score": edge,
         "payload": payload_dict,
+        "selected_asset": payload.selected_asset,  # Pass to narrative generation
     }
     narrative = generate_narrative(audit_data)
     recommendations = generate_recommendations(audit_data)
@@ -94,6 +103,7 @@ def run_audit(payload: StrategyPayload):
     # 9. Persist to Snowflake (non-blocking — failures don't break the response)
     result_dict = result.model_dump()
     result_dict["features"] = features
+    result_dict["selected_asset"] = payload.selected_asset  # Include for Snowflake and Backboard
     stored_id = store_audit_result(result_dict, payload_dict)
     if stored_id:
         result.audit_id = stored_id

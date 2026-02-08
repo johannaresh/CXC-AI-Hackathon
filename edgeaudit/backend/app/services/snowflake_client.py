@@ -81,6 +81,7 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
         payload_json = json.dumps(payload)
         recommendations_json = json.dumps(audit_result.get("recommendations", []))
         features_json = json.dumps(audit_result.get("features", {}))
+        selected_asset = audit_result.get("selected_asset")
         
         cursor.execute(
             """
@@ -91,7 +92,7 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
                 MC_SHARPE_MEAN, MC_SHARPE_STD, MC_P_VALUE, MC_NUM_SIMULATIONS,
                 EDGE_SCORE, OVERFIT_SUB_SCORE, REGIME_SUB_SCORE,
                 STAT_SIG_SUB_SCORE, DATA_LEAKAGE_SUB_SCORE, EXPLAIN_SUB_SCORE,
-                NARRATIVE, RECOMMENDATIONS, FEATURE_VECTOR
+                NARRATIVE, RECOMMENDATIONS, FEATURE_VECTOR, SELECTED_ASSET
             )
             SELECT 
                 %s, %s, PARSE_JSON(%s),
@@ -100,7 +101,7 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
                 %s, %s, %s, %s,
                 %s, %s, %s,
                 %s, %s, %s,
-                %s, PARSE_JSON(%s), PARSE_JSON(%s)
+                %s, PARSE_JSON(%s), PARSE_JSON(%s), %s
             """,
             (
                 audit_id,
@@ -124,6 +125,7 @@ def store_audit_result(audit_result: dict, payload: dict) -> str:
                 audit_result.get("narrative", ""),
                 recommendations_json,
                 features_json,
+                selected_asset,  # Store selected asset for targeted audits
             ),
         )
         logger.info("Stored audit result %s to Snowflake", audit_id)

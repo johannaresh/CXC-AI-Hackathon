@@ -88,6 +88,7 @@ def push_audit_result(audit_result: dict) -> bool:
                 "narrative": audit_result.get("narrative", ""),
                 "recommendations": audit_result.get("recommendations", []),
                 "sub_scores": _extract_sub_scores(audit_result),
+                "selected_asset": audit_result.get("selected_asset"),  # Track specific asset being audited
             }
         ],
     }

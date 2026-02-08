@@ -15,3 +15,5 @@ class StrategyPayload(BaseModel):
     train_test_split_ratio: float = 0.7
     rebalance_frequency: str = "monthly"
     raw_returns: list[float] = []
+    selected_asset: str | None = None  # Optional: specific ticker being audited
+

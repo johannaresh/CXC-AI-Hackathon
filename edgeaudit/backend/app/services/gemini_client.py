@@ -12,7 +12,7 @@ NARRATIVE_PROMPT = """You are EdgeAudit, an AI-powered quantitative strategy aud
 Your role is to protect retail investors by clearly explaining the risks and strengths of
 a trading strategy's backtest results.
 
-You have been given the following audit data for a strategy called "{strategy_name}":
+You have been given the following audit data for a strategy called "{strategy_name}":{asset_context}
 
 ## Overfit Detection
 - Overfit Probability: {overfit_probability:.1%} (Label: {overfit_label})
@@ -63,7 +63,7 @@ Monte Carlo p-value: {mc_p_value:.4f}
 Parameter count: {num_parameters}
 Sample size: {sample_size}
 Train/test split: {train_test_ratio}
-
+{asset_context_recs}
 Generate exactly 5 specific, actionable recommendations for improving this strategy's
 robustness and reducing overfitting risk.
 
@@ -81,9 +81,17 @@ def _flatten_audit_data(audit_data: dict) -> dict:
     mc = audit_data.get("monte_carlo", {})
     edge = audit_data.get("edge_score", {})
     payload = audit_data.get("payload", {})
+    selected_asset = audit_data.get("selected_asset")
 
     ci = mc.get("confidence_interval_95", [0.0, 0.0])
     train_ratio = payload.get("train_test_split_ratio", 0.7)
+
+    # Add asset context if a specific asset was selected
+    asset_context = ""
+    asset_context_recs = ""
+    if selected_asset:
+        asset_context = f"\n\n## Asset Being Audited\n- Ticker: {selected_asset}\n- This audit focuses specifically on {selected_asset} within the strategy's universe.\n"
+        asset_context_recs = f"\nAsset being audited: {selected_asset}\n"
 
     return {
         "strategy_name": audit_data.get("strategy_name", "unknown"),
@@ -111,6 +119,8 @@ def _flatten_audit_data(audit_data: dict) -> dict:
         "train_test_ratio": train_ratio,
         "test_ratio": 1.0 - train_ratio,
         "rebalance_frequency": payload.get("rebalance_frequency", "monthly"),
+        "asset_context": asset_context,
+        "asset_context_recs": asset_context_recs,
     }
 
 

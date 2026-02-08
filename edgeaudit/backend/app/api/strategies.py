@@ -1,5 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
+import json
+from pathlib import Path
 
 from ..services.snowflake_client import (
     get_all_strategies,
@@ -59,3 +61,40 @@ def compare_strategies(body: CompareRequest):
             results.append(None)
 
     return {"comparison": results}
+
+
+@router.get("/available")
+def available_strategies():
+    """List all available strategies with their ticker universes.
+    
+    Returns strategy names and asset lists from synthetic_strategies.json
+    for user-driven strategy and asset selection.
+    """
+    # Path to synthetic strategies file
+    # edgeaudit/backend/app/api/strategies.py -> parents[3] -> edgeaudit/
+    strategies_file = Path(__file__).resolve().parents[3] / "data" / "synthetic" / "synthetic_strategies.json"
+    
+    if not strategies_file.exists():
+        from ..core.logging import logger
+        logger.warning(f"Strategies file not found at: {strategies_file}")
+        return {"strategies": []}
+    
+    try:
+        with open(strategies_file, "r", encoding="utf-8") as f:
+            strategies_data = json.load(f)
+        
+        # Extract name and ticker_universe for each strategy
+        available = [
+            {
+                "name": strategy.get("name", ""),
+                "assets": strategy.get("ticker_universe", [])
+            }
+            for strategy in strategies_data
+        ]
+        
+        return {"strategies": available}
+    except Exception as e:
+        from ..core.logging import logger
+        logger.error(f"Failed to read strategies file: {e}")
+        return {"strategies": []}
+
